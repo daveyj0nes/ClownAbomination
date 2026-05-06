@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>v033 - Clown Shadow + Slime Trail</title>
+<style>
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#050308;
+  color:white;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+#game{
+  display:block;
+  width:100vw;
+  height:100vh;
+  background:#000;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+}
+#help,#tuning{
+  position:fixed;
+  z-index:5;
+  background:rgba(0,0,0,.62);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:12px;
+  color:rgba(255,255,255,.9);
+  text-shadow:1px 1px #000;
+}
+#help{
+  left:14px;
+  bottom:12px;
+  padding:8px 10px;
+  font-size:13px;
+  pointer-events:none;
+}
+#tuning{
+  right:14px;
+  top:12px;
+  padding:10px 12px;
+  width:280px;
+  font-size:13px;
+}
+#tuning h3{
+  margin:0 0 8px;
+  font-size:15px;
+}
+.control{
+  display:grid;
+  grid-template-columns: 1fr 54px;
+  gap:8px;
+  align-items:center;
+  margin:8px 0;
+}
+.control label{line-height:1.2}
+.control input{
+  width:54px;
+  border-radius:7px;
+  border:1px solid rgba(255,255,255,.25);
+  background:#111;
+  color:white;
+  padding:4px 5px;
+  font-weight:800;
+}
+.tiny{font-size:11px;color:rgba(255,255,255,.72);line-height:1.25;margin-top:8px}
+kbd{
+  display:inline-block;
+  padding:2px 7px;
+  border-radius:6px;
+  background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.25);
+  font-weight:900;
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="tuning">
+  <h3>v033 tuning inputs</h3>
+  <div class="control">
+    <label for="flightPower">Unicorn flight velocity<br><span class="tiny">1 slow · 20 wild</span></label>
+    <input id="flightPower" type="number" min="1" max="20" step="1" value="10">
+  </div>
+  <div class="control">
+    <label for="flapVelocity">Vertical velocity per flap<br><span class="tiny">1 weak · 40 ridiculous</span></label>
+    <input id="flapVelocity" type="number" min="1" max="40" step="1" value="40">
+  </div>
+  <div class="control">
+    <label for="fallRate">Unicorn fall rate<br><span class="tiny">1 floaty · 40 heavy</span></label>
+    <input id="fallRate" type="number" min="1" max="40" step="1" value="1">
+  </div>
+  <div class="control">
+    <label for="beamDuration">Ray duration<br><span class="tiny">1–5 seconds</span></label>
+    <input id="beamDuration" type="number" min="1" max="5" step="0.25" value="1">
+  </div>
+  <div class="control">
+    <label for="beamRecharge">Ray recharge<br><span class="tiny">1–10 seconds</span></label>
+    <input id="beamRecharge" type="number" min="1" max="10" step="0.25" value="5">
+  </div>
+  <div class="control">
+    <label for="dashRecharge">Dash recharge<br><span class="tiny">1–10 seconds</span></label>
+    <input id="dashRecharge" type="number" min="1" max="10" step="0.25" value="2">
+  </div>
+  <div class="control">
+    <label for="rayDamage">Ray damage per tick<br><span class="tiny">1–50</span></label>
+    <input id="rayDamage" type="number" min="1" max="50" step="1" value="6">
+  </div>
+  <div class="control">
+    <label for="dashDamage">Dash damage<br><span class="tiny">1–100</span></label>
+    <input id="dashDamage" type="number" min="1" max="100" step="1" value="3">
+  </div>
+  <div class="control">
+    <label for="poopDamage">Poop bomb damage<br><span class="tiny">1–100</span></label>
+    <input id="poopDamage" type="number" min="1" max="100" step="1" value="10">
+  </div>
+  <div class="control">
+    <label for="projectileCount">Clown projectiles<br><span class="tiny">1–20 at once</span></label>
+    <input id="projectileCount" type="number" min="1" max="20" step="1" value="2">
+  </div>
+  <div class="control">
+    <label for="projectileSpeed">Projectile average speed<br><span class="tiny">1 slow · 20 insane</span></label>
+    <input id="projectileSpeed" type="number" min="1" max="20" step="1" value="8">
+  </div>
+  <div class="control">
+    <label for="unicornSize">Unicorn size<br><span class="tiny">1 tiny · 10 huge</span></label>
+    <input id="unicornSize" type="number" min="1" max="10" step="1" value="3">
+  </div>
+  <div class="control">
+    <label for="clownSize">Clown size<br><span class="tiny">1 tiny · 10 huge</span></label>
+    <input id="clownSize" type="number" min="1" max="10" step="1" value="2">
+  </div>
+  <div class="control">
+    <label for="clownVertical">Clown vertical movement<br><span class="tiny">0 none · 200 disgusting</span></label>
+    <input id="clownVertical" type="number" min="0" max="200" step="5" value="110">
+  </div>
+  <div class="control">
+    <label for="clownFollowDelay">Clown follow delay<br><span class="tiny">0 instant · 2 seconds sluggish</span></label>
+    <input id="clownFollowDelay" type="number" min="0" max="2" step="0.05" value="0.25">
+  </div>
+  <div class="control">
+    <label for="powerupDuration">Powerup screen time<br><span class="tiny">0.5–60 seconds</span></label>
+    <input id="powerupDuration" type="number" min="0.5" max="60" step="0.5" value="50">
+  </div>
+  <div class="control">
+    <label for="poopsPerPowerup">Poops per powerup<br><span class="tiny">1–50 stockpiled</span></label>
+    <input id="poopsPerPowerup" type="number" min="1" max="50" step="1" value="5">
+  </div>
+  <div class="control">
+    <label for="unicornHealth">Unicorn starting health<br><span class="tiny">1–100</span></label>
+    <input id="unicornHealth" type="number" min="1" max="100" step="1" value="20">
+  </div>
+  <div class="tiny">Unicorn drops in from above. Press 0 to toggle invincibility. J dash passes through the clown and damages it. The clown follows with velocity, corner-charges, jumps backward, and charges for 1 second before firing random puke-green cores upward. Press <b>F</b> for browser fullscreen. Press <b>R</b> to reset.</div>
+</div>
+
+<div id="help"><kbd>7</kbd> hitboxes · clown now casts a ground shadow and leaves a gross slime trail.</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+const flightInput = document.getElementById("flightPower");
+const flapVelocityInput = document.getElementById("flapVelocity");
+const fallRateInput = document.getElementById("fallRate");
+const durationInput = document.getElementById("beamDuration");
+const rechargeInput = document.getElementById("beamRecharge");
+const dashRechargeInput = document.getElementById("dashRecharge");
+const rayDamageInput = document.getElementById("rayDamage");
+const dashDamageInput = document.getElementById("dashDamage");
+const poopDamageInput = document.getElementById("poopDamage");
+const projectileCountInput = document.getElementById("projectileCount");
+const projectileSpeedInput = document.getElementById("projectileSpeed");
+const unicornSizeInput = document.getElementById("unicornSize");
+const clownSizeInput = document.getElementById("clownSize");
+const clownVerticalInput = document.getElementById("clownVertical");
+const clownFollowDelayInput = document.getElementById("clownFollowDelay");
+const powerupDurationInput = document.getElementById("powerupDuration");
+const poopsPerPowerupInput = document.getElementById("poopsPerPowerup");
+const unicornHealthInput = document.getElementById("unicornHealth");
+
+const GAME_W = 1280;
+const GAME_H = 720;
+const FLOOR_Y = 650;
+let scale = 1;
+let ox = 0;
+let oy = 0;
+
+function resize(){
+  canvas.width = Math.floor(innerWidth * devicePixelRatio);
+  canvas.height = Math.floor(innerHeight * devicePixelRatio);
+  ctx.imageSmoothingEnabled = false;
+  scale = Math.min(canvas.width / GAME_W, canvas.height / GAME_H);
+  ox = (canvas.width - GAME_W * scale) / 2;
+  oy = (canvas.height - GAME_H * scale) / 2;
+}
+addEventListener("resize", resize);
+resize();
+
+function gameTransform(){ ctx.setTransform(scale,0,0,scale,ox,oy); }
+function drawCoverImage(img,x,y,w,h){
+  if(!img || !img.complete || !img.naturalWidth || !img.naturalHeight) return false;
+  const s = Math.max(w/img.naturalWidth, h/img.naturalHeight);
+  const dw = img.naturalWidth*s;
+  const dh = img.naturalHeight*s;
+  ctx.drawImage(img, x+(w-dw)/2, y+(h-dh)/2, dw, dh);
+  return true;
+}
+
+function drawFullScreenBackground(){
+  ctx.setTransform(1,0,0,1,0,0);
+  if(!drawCoverImage(bg,0,0,canvas.width,canvas.height)){
+    ctx.fillStyle="#050308";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+}
+
+function clearScreen(){
+  drawFullScreenBackground();
+  gameTransform();
+}
+
+function load(src){ const im = new Image(); im.src = src; return im; }
+const A = "";
+const bg = load(A+"background.png");
+const playerFrames = [load(A+"player_wings_up.png"), load(A+"player_wings_down.png")];
+const frames = {
+  move:[load(A+"move_1.png"), load(A+"move_2.png")],
+  attack:[load(A+"attack_1.png"), load(A+"attack_2.png")],
+  ouch:[load(A+"ouch_1.png"), load(A+"ouch_2.png")],
+  damagedMove:[load(A+"damaged_move_1.png"), load(A+"damaged_move_2.png")],
+  damagedAttack:[load(A+"damaged_attack_1.png"), load(A+"damaged_attack_2.png")],
+  damagedOuch:[load(A+"damaged_ouch_1.png"), load(A+"damaged_ouch_2.png")],
+  death:[load(A+"death_1.png"), load(A+"death_2.png"), load(A+"death_3.png")]
+};
+
+const keys = {i:false,a:false,d:false,k:false,l:false,j:false};
+let flapQueued = false;
+addEventListener("keydown", e => {
+  const k = e.key.toLowerCase();
+  if(["i","a","d","k","l","j","7","8","9"].includes(k)) e.preventDefault();
+  if(k === "i" && !keys.i) flapQueued = true;
+  if(k === "k" && !keys.k) dropPoopBomb();
+  if(k === "j" && !keys.j) startDash();
+  if(k in keys) keys[k] = true;
+  if(k === "f") document.documentElement.requestFullscreen?.();
+  if(k === "0") player.invincible = !player.invincible;
+  if(k === "9") electricWalls = !electricWalls;
+  if(k === "8") clownProjectilesEnabled = !clownProjectilesEnabled;
+  if(k === "7") showHitboxes = !showHitboxes;
+  if(k === "r") reset();
+});
+addEventListener("keyup", e => {
+  const k = e.key.toLowerCase();
+  if(k === "i") player.wingReturnTimer = 8;
+  if(k in keys) keys[k] = false;
+});
+
+function numInput(el, fallback, min, max){
+  const v = Number(el.value);
+  if(!Number.isFinite(v)) return fallback;
+  return Math.max(min, Math.min(max, v));
+}
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+function rand(a,b){ return a + Math.random()*(b-a); }
+function hitCircleRect(cx,cy,r,rx,ry,rw,rh){
+  const nx = clamp(cx, rx, rx+rw);
+  const ny = clamp(cy, ry, ry+rh);
+  const dx = cx-nx, dy = cy-ny;
+  return dx*dx + dy*dy <= r*r;
+}
+
+const player = {
+  x: 985,
+  y: 510,
+  vx: 0,
+  vy: 0,
+  baseW: 230,
+  baseH: 230,
+  w: 230,
+  h: 230,
+  dir: -1,
+  hp: 20,
+  maxHp: 20,
+  alive: true,
+  flap: 0,
+  invincible: true,
+  dashTimer: 0,
+  dashCooldown: 0,
+  dashHit: false,
+  hurtFlash: 0,
+  contactCooldown: 0,
+  wingReturnTimer: 0,
+  wallShockCooldown: 0
+};
+
+const monster = {
+  x: 84,
+  y: 218,
+  baseW: 500,
+  baseH: 500,
+  w: 500,
+  h: 500,
+  hp: 500,
+  maxHp: 500,
+  state: "move",
+  frame: 0,
+  frameTimer: 0,
+  timer: 0,
+  cooldown: 90,
+  moveDir: 1,
+  moveSpeed: 1.35,
+  chargeTimer: 0,
+  chargeWindup: 0,
+  chargeBackupTimer: 0,
+  chargePauseTimer: 0,
+  chargeCooldown: 180,
+  chargeVX: 0,
+  projectileWindup: 0,
+  projectileThrowTimer: 0,
+  projectileFlipTimer: 0,
+  jumpWindup: 0,
+  jumpTimer: 0,
+  jumpCooldown: 210,
+  jumpStartX: 0,
+  jumpStartY: 0,
+  jumpTargetX: 0,
+  jumpTargetY: 0,
+  jumpDir: 1,
+  stunTimer: 0,
+  vx: 0,
+  retreatTimer: 0,
+  retreatVX: 0,
+  baseY: 218,
+  verticalPhase: 0,
+  grotesqueLean: 0,
+  followX: 84,
+  overTopTimer: 0,
+  dead: false
+};
+
+const beam = {
+  energy: 300,
+  locked: false,
+  active: false,
+  damageTick: 0
+};
+
+let projectiles = [];
+let bombs = [];
+let powerups = [];
+let slimeTrail = [];
+let poopAmmo = 0;
+let powerupTimer = 15 * 60;
+let electricWalls = false;
+let clownProjectilesEnabled = true;
+let showHitboxes = false;
+let sparks = [];
+let shake = 0;
+let t = 0;
+
+
+function beamMaxFrames(){ return Math.round(numInput(durationInput,5,1,5) * 60); }
+function beamRechargeFrames(){ return Math.round(numInput(rechargeInput,5,1,10) * 60); }
+function dashRechargeFrames(){ return Math.round(numInput(dashRechargeInput,2,1,10) * 60); }
+
+
+function updateSizes(){
+  const us = numInput(unicornSizeInput,5,1,10);
+  const cs = numInput(clownSizeInput,7,1,10);
+
+  // 1-10 maps to useful sprite scale ranges without breaking the playfield.
+  const uScale = 0.25 + us * 0.065;
+  const cScale = 0.62 + cs * 0.076;
+
+  player.w = player.baseW * uScale;
+  player.h = player.baseH * uScale;
+  monster.w = monster.baseW * cScale;
+  monster.h = monster.baseH * cScale;
+
+  // Keep the abomination near the bottom after size changes. Vertical movement happens around this base.
+  monster.baseY = GAME_H - monster.h - 8;
+  if(!Number.isFinite(monster.y)) monster.y = monster.baseY;
+}
+
+function reset(){
+  updateSizes();
+  player.x=GAME_W * 0.72; player.y=-player.h * 0.65; player.vx=0; player.vy=2.2; player.dir=-1; player.maxHp=Math.round(numInput(unicornHealthInput,20,1,100)); player.hp=player.maxHp; player.alive=true; player.dashTimer=0; player.dashCooldown=0; player.dashHit=false; player.hurtFlash=0; player.contactCooldown=0; player.wingReturnTimer=0; player.wallShockCooldown=0;
+  monster.x=84; monster.baseY = GAME_H - monster.h - 8; monster.y = monster.baseY; monster.followX = player.x; monster.overTopTimer = 0; monster.hp=500; monster.state="move"; monster.frame=0; monster.frameTimer=0; monster.cooldown=90; monster.moveDir=1; monster.moveSpeed=1.65; monster.chargeTimer=0; monster.chargeWindup=0; monster.chargeBackupTimer=0; monster.chargePauseTimer=0; monster.chargeCooldown=130; monster.retreatTimer=0; monster.retreatVX=0; monster.stunTimer=0; monster.dead=false;
+  beam.energy=beamMaxFrames(); beam.locked=false; beam.active=false; beam.damageTick=0;
+  projectiles=[]; bombs=[]; powerups=[]; slimeTrail=[]; poopAmmo=0; powerupTimer=15*60; sparks=[]; shake=0; t=0;
+}
+
+function spawnSparks(x,y,color,count=12){
+  for(let i=0;i<count;i++){
+    sparks.push({x,y,vx:rand(-4,4),vy:rand(-4,4),life:rand(12,26),color});
+  }
+}
+
+function spawnProjectile(){
+  if(!clownProjectilesEnabled) return;
+  const count = Math.round(numInput(projectileCountInput,2,1,20));
+  const avg = numInput(projectileSpeedInput,8,1,20);
+  const baseSpeed = 1.1 + avg * 0.23;
+
+  const fromX = monster.x + monster.w * 0.5;
+  const fromY = monster.y + monster.h * 0.34;
+
+  for(let i=0;i<count;i++){
+    const angle = -Math.PI/2 + rand(-0.95,0.95);
+    const speed = baseSpeed * rand(0.62,1.42);
+    projectiles.push({
+      x: fromX + rand(-45,45),
+      y: fromY + rand(-20,24),
+      vx: Math.cos(angle) * speed + rand(-0.7,0.7),
+      vy: Math.sin(angle) * speed - rand(0.7,2.2),
+      r: rand(15,26),
+      pulse: rand(0,Math.PI*2)
+    });
+  }
+
+  monster.state = "attack";
+  monster.timer = 18;
+  shake = Math.max(shake, 3);
+}
+
+
+function dropPoopBomb(){
+  if(player.hp <= 0 || monster.dead) return;
+  if(poopAmmo <= 0){
+    spawnSparks(player.x, player.y + player.h*.25, "#ffffff", 5);
+    return;
+  }
+  poopAmmo--;
+
+  const bx = player.x;
+  const by = player.y + player.h * 0.32;
+
+  bombs.push({
+    x: bx,
+    y: by,
+    vx: player.vx * 0.18,
+    vy: Math.max(2.8, player.vy * 0.20 + 3.2),
+    r: 22,
+    pulse: rand(0, Math.PI * 2),
+    life: 240,
+    dead: false
+  });
+
+  spawnSparks(bx, by, "#ff4cff", 10);
+  spawnSparks(bx, by, "#76ff00", 8);
+}
+
+function explodeBomb(b){
+  if(b.dead) return;
+  b.dead = true;
+  const blastR = 115;
+
+  shake = Math.max(shake, 7);
+  spawnSparks(b.x, b.y, "#ff4cff", 16);
+  spawnSparks(b.x, b.y, "#5dffff", 14);
+  spawnSparks(b.x, b.y, "#fff93c", 14);
+  spawnSparks(b.x, b.y, "#76ff00", 14);
+
+  if(!monster.dead && hitClownBody(b.x, b.y, blastR)){
+    monster.hp = Math.max(0, monster.hp - Math.round(numInput(poopDamageInput,10,1,100)));
+    monster.state = "ouch";
+    monster.timer = 14;
+
+    if(monster.hp <= 0){
+      monster.dead = true;
+      monster.state = "death";
+      monster.frame = 0;
+      monster.frameTimer = 0;
+      shake = 12;
+    }
+  }
+
+  for(const p of projectiles){
+    const dx = p.x - b.x;
+    const dy = p.y - b.y;
+    if(dx*dx + dy*dy < blastR*blastR) p.dead = true;
+  }
+  projectiles = projectiles.filter(p => !p.dead);
+}
+
+function updateBombs(){
+  for(const b of bombs){
+    b.x += b.vx;
+    b.y += b.vy;
+    b.vy += 0.22;
+    b.vx *= 0.992;
+    b.pulse += 0.25;
+    b.life--;
+
+    if(!monster.dead && hitClownBody(b.x, b.y, b.r + 12)){
+      explodeBomb(b);
+      continue;
+    }
+
+    for(const p of projectiles){
+      const dx = p.x - b.x;
+      const dy = p.y - b.y;
+      if(dx*dx + dy*dy < (p.r + b.r + 8) * (p.r + b.r + 8)){
+        p.dead = true;
+        explodeBomb(b);
+        break;
+      }
+    }
+
+    if(b.y > GAME_H - 20 || b.life <= 0){
+      explodeBomb(b);
+    }
+  }
+
+  bombs = bombs.filter(b => !b.dead);
+}
+
+
+function spawnPowerup(){
+  powerups.push({
+    x: rand(160, GAME_W - 160),
+    y: rand(120, 500),
+    r: 24,
+    life: Math.round(numInput(powerupDurationInput,50,0.5,60) * 60),
+    pulse: rand(0, Math.PI*2)
+  });
+}
+
+function updatePowerups(){
+  powerupTimer--;
+  if(powerupTimer <= 0){
+    spawnPowerup();
+    powerupTimer = 15 * 60;
+  }
+
+  for(const p of powerups){
+    p.life--;
+    p.pulse += 0.20;
+
+    const dx = p.x - player.x;
+    const dy = p.y - player.y;
+    const rr = p.r + player.w * 0.28;
+    if(dx*dx + dy*dy < rr*rr){
+      p.dead = true;
+      poopAmmo += Math.round(numInput(poopsPerPowerupInput,5,1,50));
+      spawnSparks(p.x, p.y, "#ff4cff", 18);
+      spawnSparks(p.x, p.y, "#fff93c", 14);
+      spawnSparks(p.x, p.y, "#76ff00", 14);
+    }
+
+    if(p.life <= 0) p.dead = true;
+  }
+
+  powerups = powerups.filter(p => !p.dead);
+}
+
+function startDash(){
+  if(player.dashCooldown > 0 || player.dashTimer > 0 || monster.dead) return;
+  player.dashTimer = 24;
+  player.dashCooldown = dashRechargeFrames();
+  player.dashHit = false;
+
+  // Dash in the unicorn's current flight/facing direction, not toward the clown.
+  const dashDir = player.dir || (player.vx >= 0 ? 1 : -1);
+  player.dir = dashDir;
+  player.vx = dashDir * 18.5;
+  player.vy *= 0.25;
+  shake = Math.max(shake, 4);
+  spawnSparks(player.x, player.y, "#ffffff", 10);
+}
+
+
+
+function startMonsterJumpAttack(){
+  if(monster.dead || monster.stunTimer > 0 || monster.chargeTimer > 0 || monster.chargeWindup > 0 || monster.retreatTimer > 0 || monster.jumpWindup > 0 || monster.jumpTimer > 0) return;
+
+  monster.projectileWindup = 0;
+  monster.projectileThrowTimer = 0;
+  monster.projectileFlipTimer = 0;
+
+  monster.jumpDir = player.x >= monster.x + monster.w/2 ? 1 : -1;
+  monster.moveDir = monster.jumpDir;
+  monster.jumpStartX = monster.x;
+  monster.jumpStartY = monster.baseY;
+
+  const overshoot = monster.jumpDir * rand(170, 280);
+  monster.jumpTargetX = clamp(player.x - monster.w * 0.5 + overshoot, 18, GAME_W - monster.w - 18);
+
+  monster.state = "jump";
+  monster.jumpWindup = 0;
+  monster.jumpTimer = 58;
+  monster.jumpCooldown = rand(180, 260);
+  monster.frame = 1; // second attack animation only
+  monster.frameTimer = 0;
+
+  shake = Math.max(shake, 7);
+  spawnSparks(monster.x + monster.w/2, monster.y + monster.h*.86, "#76ff00", 18);
+}
+
+function startMonsterCharge(){
+  if(monster.dead || monster.chargeTimer > 0 || monster.chargeWindup > 0 || monster.chargeBackupTimer > 0 || monster.chargePauseTimer > 0 || monster.retreatTimer > 0 || monster.stunTimer > 0) return;
+  // Charge setup: back up first, freeze for half a second, then lunge.
+  monster.moveDir = player.x >= monster.x + monster.w/2 ? 1 : -1;
+  monster.chargeVX = monster.moveDir * rand(10.5, 13.5);
+  monster.state = "chargeBackup";
+  monster.chargeBackupTimer = 22;
+  monster.chargePauseTimer = 0;
+  monster.chargeWindup = 0;
+  monster.chargeTimer = 0;
+  monster.chargeCooldown = rand(150, 230);
+  shake = Math.max(shake, 3);
+  spawnSparks(monster.x + monster.w/2, monster.y + monster.h*.42, "#9cff1f", 8);
+}
+
+
+function shockUnicorn(nx, ny){
+  if(!electricWalls || player.wallShockCooldown > 0 || !player.alive) return;
+  player.wallShockCooldown = 45;
+  player.hurtFlash = 30;
+  shake = Math.max(shake, 7);
+  spawnSparks(player.x, player.y, "#5dffff", 12);
+  spawnSparks(player.x, player.y, "#fff93c", 8);
+  player.vx += nx * 6.5;
+  player.vy += ny * 5.0;
+  if(!player.invincible){
+    player.hp = Math.max(0, player.hp - 1);
+    if(player.hp <= 0){ player.hp = 0; player.alive = false; beam.active = false; }
+  }
+}
+
+function updatePlayer(){
+  updateSizes();
+  if(!player.alive) return;
+  const f = numInput(flightInput,10,1,20);
+  const flapV = numInput(flapVelocityInput,10,1,40);
+
+  player.dashCooldown = Math.max(0, player.dashCooldown - 1);
+
+  if(player.dashTimer > 0){
+    player.dashTimer--;
+    player.x += player.vx;
+    player.y += player.vy;
+    player.flap += 0.65;
+
+    if(!player.dashHit && dashHitsClown()){
+      player.dashHit = true;
+      monster.hp = Math.max(0, monster.hp - Math.round(numInput(dashDamageInput,3,1,100)));
+      monster.state = "ouch";
+      monster.timer = 14;
+      shake = 12;
+      spawnSparks(player.x, player.y, "#ff4cff", 28);
+      if(monster.hp <= 0){
+        monster.dead = true;
+        monster.state = "death";
+        monster.frame = 0;
+        monster.frameTimer = 0;
+      }
+    }
+
+    if(player.x <= player.w*.42 || player.x >= GAME_W-player.w*.42) {
+      const nx = player.x <= player.w*.42 ? 1 : -1;
+      player.vx *= -0.62;
+      player.x = clamp(player.x, player.w*.42, GAME_W-player.w*.42);
+      player.dir = player.vx >= 0 ? 1 : -1;
+      shockUnicorn(nx, 0);
+    }
+    if(player.y <= player.h*.38 || player.y >= 540) {
+      const ny = player.y <= player.h*.38 ? 1 : -1;
+      player.vy *= -0.50;
+      player.y = clamp(player.y, player.h*.38, 540);
+      shockUnicorn(0, ny);
+    }
+
+    if(player.dashTimer <= 0){
+      player.vx *= 0.45;
+      player.vy *= 0.65;
+      player.dashCooldown = Math.max(player.dashCooldown, 1);
+    }
+    return;
+  }
+
+  // Joust-style movement: I is a single flap impulse per key press.
+  // A/D push horizontally, but inertia remains.
+  const sideAccel = 0.035 + f * 0.031;
+  const maxVX = 2.4 + f * 0.42;
+
+  if(keys.a){ player.vx -= sideAccel; player.dir = -1; }
+  if(keys.d){ player.vx += sideAccel; player.dir = 1; }
+
+  if(flapQueued){
+    player.vy -= 0.75 + flapV * 0.105;
+    player.flap += 1.0;
+    flapQueued = false;
+  } else {
+    player.flap += 0.09;
+  }
+
+  player.vy += 0.12 + numInput(fallRateInput,1,1,40) * 0.018;      // gravity / fall rate
+  player.vx *= 0.985;     // air drag, not a hard stop
+  player.vy *= 0.995;
+
+  player.vx = clamp(player.vx, -maxVX, maxVX);
+  player.vy = clamp(player.vy, -13.8, 10.5);
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Bounce off screen boundaries instead of clamping dead.
+  const left = player.w*.42;
+  const right = GAME_W - player.w*.42;
+  const top = player.h*.38;
+  const bottom = 540;
+
+  if(player.x < left){
+    player.x = left;
+    player.vx = Math.abs(player.vx) * 0.72;
+    player.dir = 1;
+    shockUnicorn(1, 0);
+  }
+  if(player.x > right){
+    player.x = right;
+    player.vx = -Math.abs(player.vx) * 0.72;
+    player.dir = -1;
+    shockUnicorn(-1, 0);
+  }
+  if(player.y < top){
+    player.y = top;
+    player.vy = Math.abs(player.vy) * 0.55;
+    shockUnicorn(0, 1);
+  }
+  if(player.y > bottom){
+    player.y = bottom;
+    player.vy = -Math.abs(player.vy) * 0.38;
+    shockUnicorn(0, -1);
+  }
+}
+
+
+
+function clownHitZones(){
+  // These zones intentionally cover the actual usable sprite silhouette,
+  // especially the heads/upper mass that were easy to pass shots through.
+  return [
+    {
+      name:"upper heads",
+      x: monster.x + monster.w * 0.04,
+      y: monster.y - monster.h * 0.06,
+      w: monster.w * 0.92,
+      h: monster.h * 0.42
+    },
+    {
+      name:"core body",
+      x: monster.x + monster.w * 0.05,
+      y: monster.y + monster.h * 0.20,
+      w: monster.w * 0.90,
+      h: monster.h * 0.56
+    },
+    {
+      name:"low mass",
+      x: monster.x + monster.w * 0.10,
+      y: monster.y + monster.h * 0.62,
+      w: monster.w * 0.80,
+      h: monster.h * 0.34
+    },
+    {
+      name:"left limb",
+      x: monster.x - monster.w * 0.02,
+      y: monster.y + monster.h * 0.14,
+      w: monster.w * 0.32,
+      h: monster.h * 0.66
+    },
+    {
+      name:"right limb",
+      x: monster.x + monster.w * 0.70,
+      y: monster.y + monster.h * 0.14,
+      w: monster.w * 0.32,
+      h: monster.h * 0.66
+    }
+  ];
+}
+
+function hitClownBody(cx, cy, radius){
+  if(monster.dead) return false;
+  for(const z of clownHitZones()){
+    if(hitCircleRect(cx, cy, radius, z.x, z.y, z.w, z.h)) return true;
+  }
+  return false;
+}
+
+
+function beamLineHitsClown(y, minX, maxX, thickness){
+  if(monster.dead) return false;
+  for(const z of clownHitZones()){
+    const verticalHit = y >= z.y - thickness && y <= z.y + z.h + thickness;
+    const horizontalHit = maxX >= z.x && minX <= z.x + z.w;
+    if(verticalHit && horizontalHit) return true;
+  }
+  return false;
+}
+
+function dashHitsClown(){
+  if(monster.dead) return false;
+  const r = player.w * 0.46;
+
+  // Use center plus a forward point so the unicorn can hit heads/upper body during a dash.
+  if(hitClownBody(player.x, player.y, r)) return true;
+  if(hitClownBody(player.x + player.dir * player.w * 0.32, player.y - player.h * 0.08, r * 0.72)) return true;
+  if(hitClownBody(player.x + player.dir * player.w * 0.42, player.y + player.h * 0.10, r * 0.62)) return true;
+
+  return false;
+}
+
+
+
+
+
+function updateBeam(){
+  if(!player.alive){ beam.active=false; return; }
+  const max = beamMaxFrames();
+  const rechargeFrames = beamRechargeFrames();
+  const rechargeRate = max / rechargeFrames;
+
+  // If the user changes duration live, preserve current energy percent.
+  if(beam.energy > max) beam.energy = max;
+
+  beam.active = false;
+  if(keys.l && !beam.locked && beam.energy > 0){
+    beam.active = true;
+    beam.energy -= 1;
+    if(beam.energy <= 0){
+      beam.energy = 0;
+      beam.locked = true;
+    }
+  } else {
+    beam.energy = Math.min(max, beam.energy + rechargeRate);
+    if(beam.locked && beam.energy >= max){
+      beam.energy = max;
+      beam.locked = false;
+    }
+  }
+
+  if(!beam.active){
+    beam.damageTick = 0;
+    return;
+  }
+
+  const y = player.y - 34;
+  const sx = player.x + player.dir * 52;
+  const ex = player.dir > 0 ? GAME_W + 80 : -80;
+  const minX = Math.min(sx,ex);
+  const maxX = Math.max(sx,ex);
+
+  for(const p of projectiles){
+    if(p.x >= minX && p.x <= maxX && Math.abs(p.y-y) < p.r+12){
+      spawnSparks(p.x, p.y, "#9cff1f", 18);
+      p.dead = true;
+    }
+  }
+  projectiles = projectiles.filter(p => !p.dead);
+
+  if(beamLineHitsClown(y, minX, maxX, 20)){
+    const hitsHoriz = player.dir < 0
+      ? sx > monster.x && ex < monster.x+monster.w
+      : sx < monster.x+monster.w && ex > monster.x;
+    if(hitsHoriz){
+      beam.damageTick++;
+      if(beam.damageTick % 5 === 0){
+        monster.hp = Math.max(0, monster.hp - Math.round(numInput(rayDamageInput,6,1,50)));
+        monster.state = "ouch";
+        monster.timer = 10;
+        monster.stunTimer = 30; // half-second stun from ray hit
+        monster.x += player.dir * 8;
+        monster.x = Math.max(0, Math.min(GAME_W - monster.w, monster.x));
+        spawnSparks(monster.x+monster.w*.58, y, "#ff4cff", 4);
+        if(monster.hp <= 0){
+          monster.dead = true;
+          monster.state = "death";
+          monster.frame = 0;
+          monster.frameTimer = 0;
+          shake = 12;
+        }
+      }
+    }
+  }
+}
+
+
+function addClownSlime(){
+  if(monster.dead) return;
+  // Leave ooze from the lower dragging body, especially while moving/jumping/landing.
+  slimeTrail.push({
+    x: monster.x + monster.w * rand(0.18, 0.82),
+    y: monster.y + monster.h * rand(0.78, 0.95),
+    r: rand(8, 22),
+    life: rand(70, 135),
+    maxLife: 135,
+    stretch: rand(1.4, 3.2),
+    wobble: rand(0, Math.PI * 2)
+  });
+  if(slimeTrail.length > 120) slimeTrail.shift();
+}
+
+function updateSlimeTrail(){
+  for(const s of slimeTrail){
+    s.life--;
+    s.wobble += 0.06;
+  }
+  slimeTrail = slimeTrail.filter(s => s.life > 0);
+}
+
+function drawClownShadow(){
+  ctx.save();
+  const groundY = monster.baseY + monster.h * 0.93;
+  const air = Math.max(0, monster.baseY - monster.y);
+  const width = monster.w * clamp(0.78 - air / 760, 0.42, 0.78);
+  const height = monster.h * clamp(0.15 - air / 2600, 0.07, 0.15);
+  ctx.globalAlpha = clamp(0.44 - air / 720, 0.14, 0.44);
+  ctx.fillStyle = "#050009";
+  ctx.beginPath();
+  ctx.ellipse(monster.x + monster.w/2, groundY, width/2, height/2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSlimeTrail(){
+  ctx.save();
+  for(const s of slimeTrail){
+    const a = clamp(s.life / s.maxLife, 0, 1);
+    ctx.globalAlpha = a * 0.62;
+    ctx.fillStyle = "#6cff19";
+    ctx.strokeStyle = "#123900";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.ellipse(
+      s.x,
+      s.y + Math.sin(s.wobble) * 1.5,
+      s.r * s.stretch,
+      s.r * 0.45,
+      Math.sin(s.wobble) * 0.18,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.globalAlpha = a * 0.35;
+    ctx.fillStyle = "#d8ff42";
+    ctx.beginPath();
+    ctx.ellipse(s.x - s.r*.35, s.y - s.r*.10, s.r*.75, s.r*.18, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function updateMonster(){
+  if(!monster.dead && Math.random() < 0.18) addClownSlime();
+  if(monster.dead){
+    monster.frameTimer++;
+    if(monster.frameTimer > 22 && monster.frame < 2){
+      monster.frame++;
+      monster.frameTimer = 0;
+    }
+    return;
+  }
+
+  if(monster.stunTimer > 0){
+    monster.stunTimer--;
+    monster.state = "ouch";
+    monster.timer = Math.max(monster.timer, monster.stunTimer);
+    monster.frameTimer++;
+    if(monster.frameTimer > 7){
+      monster.frame = 1 - monster.frame;
+      monster.frameTimer = 0;
+    }
+    return;
+  }
+
+  // Active jump attack handling. Wind up on Attack 1, then launch high on Attack 2.
+  if(monster.jumpTimer > 0){
+    monster.jumpTimer--;
+    monster.state = "jump";
+    monster.frame = 1;
+
+    const progress = 1 - monster.jumpTimer / 58;
+    const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+    const arc = Math.sin(progress * Math.PI) * 172; // half-height jump launch
+
+    monster.x = monster.jumpStartX + (monster.jumpTargetX - monster.jumpStartX) * eased;
+    // Gross lateral lurch so the jump reads as a real attack, not just vertical hopping.
+    monster.x += Math.sin(progress * Math.PI) * monster.jumpDir * 42;
+    monster.y = monster.baseY - arc;
+    monster.moveDir = monster.jumpDir;
+
+    if(monster.jumpTimer <= 0){
+      monster.y = monster.baseY;
+      monster.state = "retreat";
+      monster.retreatTimer = 28;
+      monster.retreatVX = (player.x < monster.x + monster.w/2 ? 1 : -1) * rand(4.0, 6.5);
+      monster.jumpCooldown = rand(180,260);
+      shake = Math.max(shake, 18);
+      spawnSparks(monster.x + monster.w/2, monster.y + monster.h*.90, "#9cff1f", 32);
+      spawnSparks(monster.x + monster.w/2 - 90, monster.y + monster.h*.92, "#fff93c", 12);
+      spawnSparks(monster.x + monster.w/2 + 90, monster.y + monster.h*.92, "#fff93c", 12);
+    }
+    return;
+  }
+
+  // Jump attack trigger: if the unicorn stays over the clown for 1 second, jump attack.
+  const unicornOverClown =
+    player.x > monster.x + monster.w * 0.18 &&
+    player.x < monster.x + monster.w * 0.82 &&
+    player.y < monster.y + monster.h * 0.25;
+
+  if(unicornOverClown && !monster.dead){
+    monster.overTopTimer++;
+  } else {
+    monster.overTopTimer = 0;
+  }
+
+  if(monster.overTopTimer >= 60){
+    monster.overTopTimer = 0;
+    startMonsterJumpAttack();
+    if(monster.jumpWindup > 0) return;
+  }
+
+  const minX = 18;
+  const maxX = GAME_W - monster.w - 18;
+
+  // Optional vertical movement tuning.
+  const verticalAmount = numInput(clownVerticalInput,110,0,200);
+  if(verticalAmount > 0 && !monster.dead){
+    const wobble = Math.sin(t*0.035 + monster.verticalPhase) * verticalAmount * 0.72 + Math.sin(t*0.087) * verticalAmount * 0.28;
+    const targetY = monster.baseY - Math.abs(wobble);
+    monster.y += (targetY - monster.y) * 0.035;
+    monster.y = clamp(monster.y, GAME_H - monster.h - verticalAmount - 10, GAME_H - monster.h - 8);
+    monster.grotesqueLean = Math.sin(t*0.07) * 0.03;
+  } else if(!monster.dead){
+    monster.y += (monster.baseY - monster.y) * 0.05;
+    monster.grotesqueLean = 0;
+  }
+  const monsterCenter = monster.x + monster.w/2;
+  const playerNearLeftWall = player.x < player.w*.58 + 42;
+  const playerNearRightWall = player.x > GAME_W - player.w*.58 - 42;
+  const sameSideTrap =
+    (playerNearLeftWall && monsterCenter < player.x + 260) ||
+    (playerNearRightWall && monsterCenter > player.x - 260);
+  const closeToPlayer = Math.abs(player.x - monsterCenter) < 330;
+
+  if(monster.projectileThrowTimer > 0){
+    if(player.y > GAME_H * 0.5){
+      monster.projectileThrowTimer = 0;
+      monster.projectileFlipTimer = 0;
+      monster.state = "move";
+      if(monster.chargeCooldown <= 0) startMonsterCharge();
+    } else {
+      monster.projectileThrowTimer--;
+      monster.projectileFlipTimer--;
+      monster.state = "attack";
+
+      if(monster.projectileFlipTimer <= 0){
+        monster.frame = 1 - monster.frame;
+        monster.projectileFlipTimer = 10;
+        spawnProjectile();
+      }
+
+      if(monster.projectileThrowTimer <= 0){
+        monster.cooldown = rand(85,135);
+        monster.state = "move";
+      }
+    }
+  }
+
+  if(monster.retreatTimer > 0){
+    monster.retreatTimer--;
+    monster.state = "retreat";
+    monster.x += monster.retreatVX;
+    monster.retreatVX *= 0.94;
+    if(monster.x <= minX){ monster.x = minX; monster.retreatVX = Math.abs(monster.retreatVX) * 0.45; monster.moveDir = 1; }
+    if(monster.x >= maxX){ monster.x = maxX; monster.retreatVX = -Math.abs(monster.retreatVX) * 0.45; monster.moveDir = -1; }
+    monster.frameTimer++;
+    if(monster.frameTimer > 10){ monster.frame = 1 - monster.frame; monster.frameTimer = 0; }
+    if(monster.retreatTimer <= 0){ monster.state = "move"; monster.chargeCooldown = rand(120,190); }
+    return;
+  }
+
+  if(monster.chargeBackupTimer > 0){
+    monster.chargeBackupTimer--;
+    monster.state = "chargeBackup";
+    // Step away from the unicorn to make the lunge read clearly.
+    monster.moveDir = player.x >= monster.x + monster.w/2 ? 1 : -1;
+    monster.chargeVX = monster.moveDir * rand(10.5, 13.5);
+    monster.x -= monster.moveDir * 4.2;
+    if(monster.x <= minX){ monster.x = minX; }
+    if(monster.x >= maxX){ monster.x = maxX; }
+    monster.frameTimer++;
+    if(monster.frameTimer > 6){ monster.frame = 1 - monster.frame; monster.frameTimer = 0; }
+    if(monster.chargeBackupTimer <= 0){
+      monster.chargePauseTimer = 30; // half-second pause at 60fps
+      monster.state = "chargePause";
+      shake = Math.max(shake, 2);
+    }
+    return;
+  }
+
+  if(monster.chargePauseTimer > 0){
+    monster.chargePauseTimer--;
+    monster.state = "chargePause";
+    monster.moveDir = player.x >= monster.x + monster.w/2 ? 1 : -1;
+    monster.chargeVX = monster.moveDir * rand(10.5, 13.5);
+    // Small twitchy bounce while paused so it reads as a threat, not a freeze bug.
+    monster.y += Math.sin(monster.chargePauseTimer * 1.7) * 1.4;
+    monster.frameTimer++;
+    if(monster.frameTimer > 5){ monster.frame = 1 - monster.frame; monster.frameTimer = 0; }
+    if(monster.chargePauseTimer <= 0){
+      monster.chargeWindup = 12;
+      monster.state = "chargeWindup";
+    }
+    return;
+  }
+
+  if(monster.chargeWindup > 0){
+    monster.chargeWindup--;
+    monster.state = "chargeWindup";
+    monster.moveDir = player.x >= monster.x + monster.w/2 ? 1 : -1;
+    monster.frameTimer++;
+    if(monster.frameTimer > 8){ monster.frame = 1 - monster.frame; monster.frameTimer = 0; }
+    if(monster.chargeWindup <= 0){ monster.state = "charge"; monster.chargeTimer = 34; shake = Math.max(shake,8); }
+    return;
+  }
+
+  if(monster.chargeTimer > 0){
+    monster.chargeTimer--;
+    monster.state = "charge";
+    monster.x += monster.chargeVX;
+    let hitWall = false;
+    if(monster.x <= minX){ monster.x = minX; hitWall = true; monster.moveDir = 1; shake = Math.max(shake,9); }
+    if(monster.x >= maxX){ monster.x = maxX; hitWall = true; monster.moveDir = -1; shake = Math.max(shake,9); }
+    monster.frameTimer++;
+    if(monster.frameTimer > 5){ monster.frame = 1 - monster.frame; monster.frameTimer = 0; }
+    if(monster.chargeTimer <= 0 || hitWall){
+      monster.state = "retreat";
+      monster.retreatTimer = 42;
+      const awayFromPlayer = monsterCenter < player.x ? -1 : 1;
+      monster.retreatVX = awayFromPlayer * rand(7.0,10.0);
+      monster.moveDir = -awayFromPlayer;
+      monster.chargeCooldown = rand(150,230);
+    }
+    return;
+  }
+
+  if(monster.projectileWindup > 0){
+    if(player.y > GAME_H * 0.5){
+      // No projectiles when the unicorn is in the lower 50%. Cancel and charge instead.
+      monster.projectileWindup = 0;
+      monster.projectileThrowTimer = 0;
+      monster.projectileFlipTimer = 0;
+      monster.state = "move";
+      if(monster.chargeCooldown <= 0) startMonsterCharge();
+    } else {
+      // Hold still in attack pose before throwing. No flip spam here.
+      monster.projectileWindup--;
+      monster.state = "attack";
+      monster.frame = 0;
+      monster.frameTimer = 0;
+
+      if(monster.projectileWindup <= 0){
+        // Begin the actual throwing loop. Every flip releases a projectile burst.
+        monster.projectileThrowTimer = 42;
+        monster.projectileFlipTimer = 1;
+        monster.frame = 0;
+      }
+    }
+  } else if(monster.state === "attack" || monster.state === "ouch"){
+    monster.timer--;
+    if(monster.timer <= 0) monster.state = "move";
+  } else {
+    const followDelay = numInput(clownFollowDelayInput,0.25,0,2);
+    const followAlpha = followDelay <= 0 ? 1 : 1 / (followDelay * 60 + 1);
+    if(!Number.isFinite(monster.followX)) monster.followX = player.x;
+    monster.followX += (player.x - monster.followX) * followAlpha;
+
+    const desiredDir = monster.followX >= monsterCenter ? 1 : -1;
+    monster.moveDir = desiredDir;
+    const distance = Math.abs(monster.followX - monsterCenter);
+    const chaseSpeed = clamp(1.2 + distance / 240, 1.2, 4.35);
+    monster.vx = monster.moveDir * chaseSpeed;
+    monster.x += monster.vx;
+    if(monster.x <= minX){ monster.x = minX; monster.moveDir = 1; monster.vx = Math.abs(monster.vx); shake = Math.max(shake,2); }
+    if(monster.x >= maxX){ monster.x = maxX; monster.moveDir = -1; monster.vx = -Math.abs(monster.vx); shake = Math.max(shake,2); }
+    monster.frameTimer++;
+    if(monster.frameTimer > 18){ monster.frame = 1 - monster.frame; monster.frameTimer = 0; }
+    monster.cooldown--;
+    monster.jumpCooldown--;
+    if(player.y <= GAME_H * 0.5){
+      const horizontalDistance = Math.abs(player.x - (monster.x + monster.w/2));
+      if(monster.jumpCooldown <= 0 && horizontalDistance < 680){
+        startMonsterJumpAttack();
+        monster.cooldown = rand(90, 135);
+        return;
+      }
+
+      if(monster.cooldown <= 0){
+        // Pause in a held throwing pose, then throw once per animation flip.
+        monster.projectileWindup = 30;
+        monster.projectileThrowTimer = 0;
+        monster.projectileFlipTimer = 0;
+        monster.state = "attack";
+        monster.timer = 30;
+        monster.frame = 0;
+      }
+    }
+
+    monster.chargeCooldown--;
+    // Lower 50%: never fire projectiles. Charge without warning instead.
+    if(monster.chargeCooldown <= 0 && player.y > GAME_H * 0.5){
+      startMonsterCharge();
+    }
+  }
+
+  const pr = player.w*.30;
+  const touchingClown = hitClownBody(player.x, player.y, pr);
+
+  if(player.alive && player.dashTimer <= 0 && monster.chargeTimer > 0 && touchingClown){
+    player.vx = (player.x < monster.x + monster.w/2) ? -32 : 32;
+    player.vy = -16;
+    player.hurtFlash = Math.max(player.hurtFlash, 12);
+    player.contactCooldown = 22;
+    shake = Math.max(shake, 12);
+    spawnSparks(player.x, player.y, "#ffffff", 10);
+  }
+
+  if(player.alive && player.dashTimer <= 0 && monster.chargeTimer <= 0 && touchingClown){
+    if(player.x > monster.x + monster.w/2) player.vx = Math.max(player.vx, 5.5);
+    else player.vx = Math.min(player.vx, -5.5);
+    player.vy = Math.min(player.vy, -3.2);
+
+    if(player.contactCooldown <= 0){
+      player.hurtFlash = 30;
+      player.contactCooldown = 45;
+      if(!player.invincible){
+        player.hp = Math.max(0, player.hp - 1);
+        if(player.hp <= 0){ player.hp = 0; player.alive = false; beam.active = false; }
+      }
+      shake = Math.max(shake, 4);
+      spawnSparks(player.x, player.y, "#ffffff", 8);
+    }
+  }
+}
+
+function updateProjectiles(){
+  for(const p of projectiles){
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.035;
+    p.pulse += 0.18;
+
+    if(p.x < -100 || p.x > GAME_W+100 || p.y < -120 || p.y > GAME_H+100){
+      p.dead = true;
+      continue;
+    }
+
+    const dx = p.x-player.x, dy = p.y-player.y;
+    const rr = p.r + player.w*.25;
+    if(dx*dx+dy*dy < rr*rr){
+      spawnSparks(p.x, p.y, "#9cff1f", 18);
+      p.dead = true;
+      player.hurtFlash = 30; // half second invert
+      if(!player.invincible){
+        player.hp = Math.max(0, player.hp - 1);
+        if(player.hp <= 0){ player.hp = 0; player.alive = false; beam.active = false; }
+      }
+      shake = Math.max(shake, 3);
+    }
+  }
+  projectiles = projectiles.filter(p => !p.dead);
+}
+
+function update(){
+  t++;
+  updateSizes();
+  updatePlayer();
+  updateBeam();
+  updateMonster();
+  updateProjectiles();
+  updateBombs();
+  updatePowerups();
+  updateSlimeTrail();
+  player.hurtFlash = Math.max(0, player.hurtFlash - 1);
+  player.contactCooldown = Math.max(0, player.contactCooldown - 1);
+  player.wallShockCooldown = Math.max(0, player.wallShockCooldown - 1);
+  player.wingReturnTimer = Math.max(0, player.wingReturnTimer - 1);
+
+  for(const s of sparks){
+    s.x += s.vx;
+    s.y += s.vy;
+    s.vy += 0.09;
+    s.life--;
+  }
+  sparks = sparks.filter(s => s.life > 0);
+  shake = Math.max(0, shake-0.35);
+}
+
+function currentMonsterFrame(){
+  if(monster.dead) return frames.death[monster.frame];
+  const damaged = monster.hp <= monster.maxHp*.5;
+  if(monster.state === "attack" || monster.state === "chargeWindup" || monster.state === "charge" || monster.state === "jumpWindup" || monster.state === "jump") return (damaged ? frames.damagedAttack : frames.attack)[monster.frame%2];
+  if(monster.state === "ouch") return (damaged ? frames.damagedOuch : frames.ouch)[Math.floor(t/7)%2];
+  return (damaged ? frames.damagedMove : frames.move)[monster.frame%2];
+}
+
+function drawBar(x,y,w,h,pct,label,fill){
+  ctx.fillStyle="rgba(0,0,0,.66)";
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle="rgba(255,255,255,.88)";
+  ctx.lineWidth=2;
+  ctx.strokeRect(x,y,w,h);
+  ctx.fillStyle=fill;
+  ctx.fillRect(x+3,y+3,(w-6)*clamp(pct,0,1),h-6);
+  ctx.fillStyle="white";
+  ctx.font="15px monospace";
+  ctx.fillText(label,x+8,y+h-7);
+}
+
+function drawBeam(){
+  if(!beam.active) return;
+  const y = player.y - 34 + Math.sin(t*.6)*2;
+  const sx = player.x + player.dir*52;
+  const ex = player.dir > 0 ? GAME_W+60 : -60;
+
+  const grad = ctx.createLinearGradient(sx,y,ex,y);
+  grad.addColorStop(0,"#ffffff");
+  grad.addColorStop(.14,"#ff3cff");
+  grad.addColorStop(.30,"#5dffff");
+  grad.addColorStop(.46,"#5cff37");
+  grad.addColorStop(.62,"#fff93c");
+  grad.addColorStop(.78,"#ff7b21");
+  grad.addColorStop(1,"#ff245d");
+
+  ctx.save();
+  ctx.globalAlpha=.40+Math.random()*.15;
+  ctx.strokeStyle="#ffffff";
+  ctx.lineWidth=18+Math.sin(t*.8)*3;
+  ctx.beginPath();
+  ctx.moveTo(sx,y);
+  ctx.lineTo(ex,y+Math.sin(t*.41)*4);
+  ctx.stroke();
+
+  ctx.globalAlpha=.96;
+  ctx.strokeStyle=grad;
+  ctx.lineWidth=8;
+  ctx.beginPath();
+  ctx.moveTo(sx,y);
+  ctx.lineTo(ex,y+Math.sin(t*.34)*3);
+  ctx.stroke();
+  ctx.restore();
+}
+
+
+
+function drawPowerups(){
+  for(const p of powerups){
+    const pulse = Math.sin(p.pulse) * 5;
+    const r = p.r + pulse;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p.life / 18);
+    const g = ctx.createRadialGradient(p.x,p.y,3,p.x,p.y,r+18);
+    g.addColorStop(0,"#ffffff");
+    g.addColorStop(.22,"#ff4cff");
+    g.addColorStop(.45,"#5dffff");
+    g.addColorStop(.68,"#fff93c");
+    g.addColorStop(1,"rgba(118,255,0,.05)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,r+18,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,r*.75,0,Math.PI*2);
+    ctx.stroke();
+
+    ctx.fillStyle = "#2a0630";
+    ctx.font = "900 22px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("💩", p.x, p.y+8);
+    ctx.textAlign = "left";
+    ctx.restore();
+  }
+}
+
+function drawBombs(){
+  for(const b of bombs){
+    const pulse = Math.sin(b.pulse) * 3;
+    const r = b.r + pulse;
+
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.pulse * 0.35);
+
+    const g = ctx.createRadialGradient(0,0,2,0,0,r+10);
+    g.addColorStop(0,"#ffffff");
+    g.addColorStop(.18,"#ff4cff");
+    g.addColorStop(.36,"#5dffff");
+    g.addColorStop(.54,"#fff93c");
+    g.addColorStop(.72,"#76ff00");
+    g.addColorStop(1,"rgba(255,0,255,.08)");
+
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0,0,r*1.15,r*.82,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#2a0630";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0,0,r*1.15,r*.82,0,0,Math.PI*2);
+    ctx.stroke();
+
+    ctx.globalAlpha = .8;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(-r*.25,-r*.25,5,5);
+    ctx.fillRect(r*.18,r*.05,4,4);
+    ctx.restore();
+  }
+}
+
+function drawProjectiles(){
+  for(const p of projectiles){
+    const pulse = Math.sin(p.pulse)*5;
+    const r = p.r + pulse;
+    const g = ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,r+18);
+    g.addColorStop(0,"#ffffff");
+    g.addColorStop(.2,"#dcff72");
+    g.addColorStop(.52,"#76ff00");
+    g.addColorStop(.78,"#147200");
+    g.addColorStop(1,"rgba(0,30,0,0)");
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,r+18,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle="#0d3100";
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,r*.72,0,Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+function drawPlayer(){
+  const img = keys.i ? playerFrames[1] : (player.wingReturnTimer > 4 ? playerFrames[1] : playerFrames[0]);
+
+  if(player.dashTimer > 0){
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#ff4cff";
+    for(let i=0;i<6;i++){
+      ctx.beginPath();
+      ctx.ellipse(player.x - player.dir*(38+i*26), player.y + Math.sin(t*.5+i)*12, 42-i*4, 15, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.filter = player.hurtFlash > 0 ? "invert(1) hue-rotate(120deg) saturate(2)" : "none";
+  ctx.translate(player.x, player.y + Math.sin(t*.06)*5);
+  ctx.scale(-player.dir,1);
+  ctx.rotate(player.vx*.008 + Math.sin(t*.04)*.025);
+  ctx.drawImage(img, -player.w/2, -player.h/2, player.w, player.h);
+  ctx.filter = "none";
+  ctx.restore();
+}
+
+
+function drawElectricWalls(){
+  if(!electricWalls) return;
+  ctx.save();
+  const flicker = Math.floor(t/4)%2 ? 0.95 : 0.55;
+  ctx.globalAlpha = flicker;
+  ctx.strokeStyle = "#5dffff";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(8, 8, GAME_W-16, GAME_H-16);
+  ctx.strokeStyle = "#fff93c";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(18, 18, GAME_W-36, GAME_H-36);
+
+  ctx.fillStyle = "#5dffff";
+  for(let x=30; x<GAME_W; x+=80){
+    const y1 = 10 + Math.sin(t*.35 + x)*8;
+    ctx.beginPath();
+    ctx.moveTo(x, y1);
+    ctx.lineTo(x+18, y1+14);
+    ctx.lineTo(x+7, y1+14);
+    ctx.lineTo(x+28, y1+34);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+
+function clownStatusLine(){
+  if(monster.dead) return "CLOWN: DEAD, FINALLY";
+  if(!clownProjectilesEnabled && monster.state === "move") return "CLOWN: PROJECTILES DISABLED";
+  if(monster.stunTimer > 0) return "CLOWN: STUNNED BY RAINBOW RAY";
+  if(monster.jumpTimer > 0 || monster.state === "jump") return "CLOWN: JUMP ATTACK, AIRBORNE";
+  if(monster.chargeBackupTimer > 0) return "CLOWN: BACKING UP FOR CHARGE";
+  if(monster.chargePauseTimer > 0 || monster.chargeWindup > 0) return "CLOWN: ABOUT TO CHARGE";
+  if(monster.chargeTimer > 0) return "CLOWN: CHARGING";
+  if(monster.projectileWindup > 0) return "CLOWN: GETTING READY TO HURL A CORE";
+  if(monster.projectileThrowTimer > 0) return "CLOWN: THROWING PROJECTILES";
+  if(monster.retreatTimer > 0) return "CLOWN: RECOILING";
+  if(monster.overTopTimer > 0) return `CLOWN: WATCHING YOU OVERHEAD ${Math.ceil((60-monster.overTopTimer)/60)}s`;
+  if(player.y > GAME_H * 0.5) return "CLOWN: HUNTING FOR A CHARGE";
+  return "CLOWN: STALKING / AIMING";
+}
+
+
+
+function drawHitboxes(){
+  if(!showHitboxes) return;
+
+  ctx.save();
+  ctx.globalAlpha = 0.58;
+  ctx.lineWidth = 3;
+
+  ctx.strokeStyle = "#ff3cff";
+  ctx.fillStyle = "rgba(255,60,255,.10)";
+  for(const z of clownHitZones()){
+    ctx.fillStyle = "rgba(255,60,255,.10)";
+    ctx.fillRect(z.x,z.y,z.w,z.h);
+    ctx.strokeRect(z.x,z.y,z.w,z.h);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px monospace";
+    ctx.fillText(z.name, z.x+6, z.y+16);
+  }
+
+  ctx.strokeStyle = "#5dffff";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.w*.30, 0, Math.PI*2);
+  ctx.stroke();
+
+  // Beam/sample line, useful for seeing why shots hit or miss.
+  if(beam.active){
+    ctx.strokeStyle = "#ffff00";
+    ctx.lineWidth = 5;
+    const by = player.y - 34;
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.dir * 52, by);
+    ctx.lineTo(player.dir > 0 ? GAME_W : 0, by);
+    ctx.stroke();
+    ctx.fillStyle = "#ffff00";
+    ctx.font = "bold 13px monospace";
+    ctx.fillText("ray hit line", player.x + 12, by - 10);
+  }
+
+  ctx.restore();
+}
+
+
+
+function drawHud(){
+  ctx.fillStyle="white"; ctx.font="bold 22px monospace"; ctx.fillText(clownStatusLine(),28,194);
+
+  drawBar(20,20,330,24,monster.hp/monster.maxHp,`CLOWN ABOMINATION ${monster.hp}/500`,"#ff3d66");
+  drawBar(20,52,230,22,player.hp/player.maxHp, player.invincible ? `UNICORN INVINCIBLE` : `UNICORN ${player.hp}/20`,"#64ff5a");
+
+  const max = beamMaxFrames();
+  const pct = max ? beam.energy/max : 0;
+  const label = beam.locked ? `BEAM RECHARGING ${Math.floor(pct*100)}%` : `BEAM POWER ${Math.floor(pct*100)}%`;
+  drawBar(20,82,275,22,pct,label,beam.locked?"#39d7ff":"#ff48ff");
+
+  ctx.fillStyle="rgba(0,0,0,.48)";
+  ctx.fillRect(20,112,290,24);
+  ctx.fillStyle="white";
+  ctx.font="14px monospace";
+  const dashText = player.dashTimer > 0 ? "DASHING" : (player.dashCooldown > 0 ? `dash ${Math.ceil(player.dashCooldown/60)}s` : "dash ready");
+  const chargeText = monster.chargeTimer > 0 ? " CLOWN CHARGE" : (monster.chargeWindup > 0 ? " CLOWN WINDUP" : (monster.retreatTimer > 0 ? " CLOWN JUMPBACK" : (monster.projectileWindup > 0 ? " CORE CHARGE" : "")));
+  ctx.fillText(`h ${numInput(flightInput,10,1,20)} · fall ${numInput(fallRateInput,1,1,40)} · poop ${poopAmmo} · ray ${numInput(rayDamageInput,6,1,50)} · dash ${numInput(dashDamageInput,3,1,100)} · bomb ${numInput(poopDamageInput,10,1,100)} · delay ${numInput(clownFollowDelayInput,0.25,0,2)}s · ${dashText}${chargeText}`,28,129);
+
+  if(monster.dead){
+    ctx.fillStyle="rgba(0,0,0,.45)";
+    ctx.fillRect(0,0,GAME_W,GAME_H);
+    ctx.fillStyle="#ff53ff";
+    ctx.font="900 48px monospace";
+    ctx.textAlign="center";
+    ctx.fillText("ABOMINATION DESTROYED",GAME_W/2,GAME_H/2);
+    ctx.textAlign="left";
+  }
+}
+
+function draw(){
+  clearScreen();
+  ctx.save();
+  if(shake>0) ctx.translate(rand(-shake,shake),rand(-shake,shake));
+
+  if(!drawCoverImage(bg,0,0,GAME_W,GAME_H)){
+    ctx.fillStyle="#1b1230";
+    ctx.fillRect(0,0,GAME_W,GAME_H);
+  }
+
+  drawSlimeTrail();
+  drawClownShadow();
+
+  ctx.save();
+  // Source art faces opposite the patrol direction, so flip the visual against moveDir.
+  const telegraphY = monster.chargeWindup > 0 ? Math.sin(t * 1.35) * 10 : 0;
+  ctx.translate(monster.x + monster.w/2, monster.y + monster.h/2 + telegraphY);
+  ctx.rotate(monster.grotesqueLean || 0);
+  let sx = -monster.moveDir;
+  let sy = 1 + Math.sin(t*.11)*0.02;
+if(monster.state === "jump"){
+    sx *= 0.82;
+    sy *= 1.24;
+  }
+  ctx.scale(sx, sy);
+  ctx.filter = monster.stunTimer > 0 && Math.floor(t/3)%2 === 0 ? "invert(1) hue-rotate(160deg) saturate(2)" : "none";
+  ctx.drawImage(currentMonsterFrame(), -monster.w/2, -monster.h/2, monster.w, monster.h);
+  ctx.filter = "none";
+  ctx.restore();
+  drawBeam();
+  drawProjectiles();
+  drawPowerups();
+  drawBombs();
+  for(const s of sparks){
+    ctx.fillStyle=s.color;
+    ctx.fillRect(s.x,s.y,5,5);
+  }
+
+  drawPlayer();
+  ctx.restore();
+  drawElectricWalls();
+  drawHitboxes();
+  drawHud();
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+reset();
+loop();
+</script>
+</body>
+</html>
